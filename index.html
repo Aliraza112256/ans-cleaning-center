@@ -1218,8 +1218,9 @@
         
         // ===== GOOGLE SHEETS INTEGRATION =====
         
-        // ⚠️ IMPORTANT: REPLACE THIS URL WITH YOUR ACTUAL GOOGLE APPS SCRIPT WEB APP URL
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec";
+        // ⚠️ IMPORTANT: AFTER DEPLOYING APPS SCRIPT, REPLACE THIS URL
+        // Get this URL from Google Apps Script after deployment
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyG65C8zudDEvLBhMMxRvoPC7BLZhNB8boZWNeqGzoLEQScwuWS3l0_bCEtILSIlVc8/exec";
         
         // Booking Form Submission
         const bookingForm = document.getElementById('serviceBookingForm');
@@ -1236,8 +1237,7 @@
                 address: document.getElementById('address').value.trim(),
                 service: document.getElementById('service').value,
                 problem: document.getElementById('problem').value.trim(),
-                date: document.getElementById('date').value || 'ASAP',
-                area: 'Gulshan Ravi'
+                date: document.getElementById('date').value || 'ASAP'
             };
             
             // Validate required fields
@@ -1246,28 +1246,15 @@
                 return;
             }
             
-            // Validate phone number format
-            const phoneRegex = /^03[0-9]{2}-?[0-9]{7}$/;
-            if (!phoneRegex.test(formData.phone.replace(/-/g, ''))) {
-                showMessage('error', 'Please enter a valid Pakistani phone number (03XXXXXXXXX)');
-                return;
-            }
-            
             // Show loading
             showLoading(true);
             
-            // Generate booking ID
-            const bookingId = 'ANS-' + new Date().getFullYear() + 
-                            String(new Date().getMonth() + 1).padStart(2, '0') +
-                            String(new Date().getDate()).padStart(2, '0') + '-' +
-                            Math.floor(1000 + Math.random() * 9000);
-            
             try {
-                // Send to Google Sheets via Apps Script
+                // Send to Google Sheets
                 console.log('Sending to Google Sheets:', formData);
                 
-                // IMPORTANT: Use mode: 'no-cors' for Google Apps Script
-                await fetch(GOOGLE_SCRIPT_URL, {
+                // Simple fetch request
+                const response = await fetch(GOOGLE_SCRIPT_URL, {
                     method: 'POST',
                     mode: 'no-cors',
                     headers: {
@@ -1276,29 +1263,28 @@
                     body: JSON.stringify(formData)
                 });
                 
-                console.log('Data sent to Google Sheets successfully');
+                console.log('✅ Data sent to Google Sheets');
                 
                 // Send WhatsApp notification
-                sendWhatsAppNotification(formData, bookingId);
+                sendWhatsAppNotification(formData);
                 
                 // Show success message
-                showSuccessMessage(formData, bookingId);
+                showSuccessMessage(formData);
                 
-                // Save booking data for receipt
+                // Save booking data
                 window.lastBookingData = formData;
-                window.lastBookingId = bookingId;
                 
                 // Reset form
                 bookingForm.reset();
                 
             } catch (error) {
-                console.error('Google Sheets error:', error);
+                console.error('❌ Error:', error);
                 
-                // Fallback to WhatsApp only method
+                // Fallback to WhatsApp only
                 showMessage('warning', 'Booking sent via WhatsApp. We\'ll contact you shortly.');
                 
                 // Send via WhatsApp
-                sendWhatsAppNotification(formData, bookingId);
+                sendWhatsAppNotification(formData);
                 
             } finally {
                 // Hide loading
@@ -1308,18 +1294,17 @@
         
         // Function to show loading overlay
         function showLoading(show) {
-            if (show) {
-                loadingOverlay.style.display = 'flex';
-            } else {
-                loadingOverlay.style.display = 'none';
-            }
+            loadingOverlay.style.display = show ? 'flex' : 'none';
         }
         
         // Function to show messages
-        function showMessage(type, message, html = false) {
-            formMessage.innerHTML = html ? message : `
+        function showMessage(type, message) {
+            const icon = type === 'error' ? 'exclamation-circle' : 
+                        type === 'warning' ? 'exclamation-triangle' : 'check-circle';
+            
+            formMessage.innerHTML = `
                 <div class="${type}-message">
-                    <i class="fas fa-${type === 'error' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : 'check-circle'}"></i>
+                    <i class="fas fa-${icon}"></i>
                     ${message}
                 </div>
             `;
@@ -1328,15 +1313,17 @@
         }
         
         // Function to show success message
-        function showSuccessMessage(formData, bookingId) {
-            const successHTML = `
+        function showSuccessMessage(formData) {
+            const bookingId = 'ANS-' + new Date().getTime().toString().slice(-8);
+            
+            formMessage.innerHTML = `
                 <div class="success-message">
                     <div style="text-align: center; margin-bottom: 15px;">
                         <i class="fas fa-check-circle" style="font-size: 3rem; color: #28a745;"></i>
                     </div>
                     <h3 style="color: #155724; text-align: center;">✅ Booking Successful!</h3>
                     <p><strong>Dear ${formData.name},</strong></p>
-                    <p>Your <strong>${formData.service}</strong> booking has been confirmed and saved in our system.</p>
+                    <p>Your <strong>${formData.service}</strong> booking has been confirmed.</p>
                     
                     <div style="background-color: white; padding: 15px; border-radius: 5px; margin: 15px 0;">
                         <p><strong>📋 Booking Details:</strong></p>
@@ -1344,153 +1331,57 @@
                         <p><strong>Service:</strong> ${formData.service}</p>
                         <p><strong>Phone:</strong> ${formData.phone}</p>
                         <p><strong>Address:</strong> ${formData.address}</p>
-                        <p><strong>Preferred Date:</strong> ${formData.date}</p>
                     </div>
                     
                     <div style="background-color: #e6f3ff; padding: 15px; border-radius: 5px; margin: 15px 0;">
                         <p><strong>📞 Next Step:</strong></p>
-                        <p>Our technician will call you at <strong>${formData.phone}</strong> within <strong>30 minutes</strong> to confirm the timing.</p>
-                        <p>If you don't receive a call, please contact us at <strong>0326-9411289</strong>.</p>
-                    </div>
-                    
-                    <div style="text-align: center; margin-top: 20px;">
-                        <button onclick="downloadReceipt()" class="btn" style="margin-right: 10px;">
-                            <i class="fas fa-download"></i> Download Receipt
-                        </button>
-                        <button onclick="window.location.href='#home'" class="btn btn-orange">
-                            <i class="fas fa-home"></i> Back to Home
-                        </button>
+                        <p>Our technician will call you within <strong>30 minutes</strong>.</p>
+                        <p>If no call received, please call: <strong>0326-9411289</strong></p>
                     </div>
                 </div>
             `;
-            showMessage('success', successHTML, true);
+            formMessage.classList.remove('hidden');
         }
         
         // WhatsApp notification function
-        function sendWhatsAppNotification(formData, bookingId) {
-            // Send to admin WhatsApp
-            const adminMessage = `📋 *NEW BOOKING - ANS COOLING CENTER* 📋
+        function sendWhatsAppNotification(formData) {
+            // Send to admin
+            const adminMessage = `📋 NEW BOOKING
             
-🔢 *Booking ID:* ${bookingId}
-👤 *Customer:* ${formData.name}
-📱 *Phone:* ${formData.phone}
-📍 *Address:* ${formData.address}
-🔧 *Service:* ${formData.service}
-⚠️ *Problem:* ${formData.problem}
-📅 *Date:* ${formData.date}
-⏰ *Time:* ${new Date().toLocaleString('en-PK')}
-
-*ACTION NEEDED:* Please call customer within 30 minutes.
-*Status:* ✅ RECEIVED`;
-            
-            // Open WhatsApp for admin
-            window.open(`https://wa.me/923269411289?text=${encodeURIComponent(adminMessage)}`, '_blank');
-            
-            // Send confirmation to customer (after delay)
-            setTimeout(() => {
-                const customerMsg = `✅ *ANS Cooling Center - Booking Confirmed*
-                
-Dear ${formData.name},
-
-Thank you for your booking with ANS Cooling Center!
-
-📋 *Booking Details:*
-• Booking ID: ${bookingId}
-• Service: ${formData.service}
-• Date: ${formData.date || 'ASAP'}
-
-Our technician will call you within 30 minutes to confirm timing.
-
-📍 *Our Location:*
-Moon Market, AQA Tower, Gulshan Ravi, Lahore
-
-📞 *Contact Numbers:*
-• 0326-9411289
-• 0322-0451335
-• 042-35494217
-
-⏰ *Service Hours:*
-8:00 AM - 10:00 PM (7 Days a Week)
-
-Thank you for choosing ANS Cooling Center!`;
-                
-                window.open(`https://wa.me/${formData.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(customerMsg)}`, '_blank');
-            }, 2000);
-        }
-        
-        // Download receipt function
-        function downloadReceipt() {
-            if (!window.lastBookingData || !window.lastBookingId) {
-                alert('No booking data found. Please submit a booking first.');
-                return;
-            }
-            
-            const formData = window.lastBookingData;
-            const bookingId = window.lastBookingId;
-            
-            const receipt = `
-==================================
-        ANS COOLING CENTER
-==================================
-      SERVICE BOOKING RECEIPT
-==================================
-
-Booking ID: ${bookingId}
-Date: ${new Date().toLocaleDateString('en-PK')}
-Time: ${new Date().toLocaleTimeString('en-PK')}
-
-CUSTOMER DETAILS:
-----------------
 Name: ${formData.name}
 Phone: ${formData.phone}
 Address: ${formData.address}
-
-SERVICE DETAILS:
----------------
-Service Type: ${formData.service}
-Problem Description: ${formData.problem}
-Preferred Date: ${formData.date}
-
-STATUS: ✅ BOOKED & CONFIRMED
-
-Our technician will contact you within 30 minutes.
-If no call received, please call: 0326-9411289
-
-==================================
-📍 Moon Market, AQA Tower
-Gulshan Ravi, Lahore
-📞 0326-9411289 | 0322-0451335
-⏰ 8:00 AM - 10:00 PM (7 Days)
-==================================
-Thank you for choosing ANS Cooling Center!
-90-Day Service Warranty on All Repairs
-==================================
-            `;
+Service: ${formData.service}
+Problem: ${formData.problem}
+Date: ${formData.date}
+Time: ${new Date().toLocaleString('en-PK')}`;
             
-            // Create and download file
-            const blob = new Blob([receipt], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `ANS-Booking-${bookingId}.txt`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            window.open(`https://wa.me/923269411289?text=${encodeURIComponent(adminMessage)}`, '_blank');
+            
+            // Send to customer
+            setTimeout(() => {
+                const customerMsg = `✅ Booking Confirmed!
+                
+Dear ${formData.name},
+Your ${formData.service} booking is confirmed.
+We'll call you within 30 minutes.
+Thank you!`;
+                
+                window.open(`https://wa.me/${formData.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(customerMsg)}`, '_blank');
+            }, 1000);
         }
         
-        // ===== ADDITIONAL FUNCTIONS =====
+        // ===== OTHER FUNCTIONS =====
         
-        // Smooth scrolling for anchor links
+        // Smooth scrolling
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function(e) {
                 if(this.getAttribute('href') === '#') return;
                 
                 e.preventDefault();
                 const targetId = this.getAttribute('href');
-                if(targetId === '#') return;
-                
                 const targetElement = document.querySelector(targetId);
+                
                 if(targetElement) {
                     window.scrollTo({
                         top: targetElement.offsetTop - 80,
@@ -1500,52 +1391,35 @@ Thank you for choosing ANS Cooling Center!
             });
         });
         
-        // Set minimum date for booking to today
-        const dateInput = document.getElementById('date');
-        const today = new Date().toISOString().split('T')[0];
-        dateInput.min = today;
+        // Set minimum date to today
+        document.getElementById('date').min = new Date().toISOString().split('T')[0];
         
-        // Phone number validation
-        const phoneInput = document.getElementById('phone');
-        phoneInput.addEventListener('input', function() {
+        // Phone validation
+        document.getElementById('phone').addEventListener('input', function() {
             this.value = this.value.replace(/[^0-9\-]/g, '');
         });
         
         // Header scroll effect
         window.addEventListener('scroll', () => {
             const header = document.querySelector('header');
-            if(window.scrollY > 100) {
-                header.style.backgroundColor = 'rgba(255, 255, 255, 0.98)';
-                header.style.boxShadow = '0 5px 20px rgba(0, 0, 0, 0.1)';
-            } else {
-                header.style.backgroundColor = 'rgba(255, 255, 255, 0.95)';
-                header.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.1)';
-            }
+            header.style.backgroundColor = window.scrollY > 100 
+                ? 'rgba(255, 255, 255, 0.98)' 
+                : 'rgba(255, 255, 255, 0.95)';
         });
         
-        // Test function - can be called from browser console
-        window.testGoogleSheets = function() {
+        // Test function
+        window.testBooking = function() {
             const testData = {
                 name: "Test Customer",
                 phone: "03211234567",
-                address: "Test Address, Lahore",
+                address: "Test Address",
                 service: "AC Repair",
-                problem: "Test problem description",
-                date: new Date().toISOString().split('T')[0]
+                problem: "Test Problem",
+                date: "2024-03-20"
             };
             
             console.log('Test Data:', testData);
-            console.log('Web App URL:', GOOGLE_SCRIPT_URL);
-            
-            fetch(GOOGLE_SCRIPT_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(testData)
-            }).then(() => {
-                console.log('Test data sent to Google Sheets');
-                alert('Test booking sent! Check your Google Sheet.');
-            });
+            alert('Test function ready - check console');
         }
     </script>
 </body>
