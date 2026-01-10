@@ -1219,7 +1219,7 @@
         // ===== GOOGLE SHEETS INTEGRATION =====
         
         // ⚠️ IMPORTANT: REPLACE THIS URL WITH YOUR ACTUAL GOOGLE APPS SCRIPT WEB APP URL
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxLoei3CX11Fw6Xfdf4bQR_wSYjq4EXZHhi6e9Fo0R15eOqpyQ3Xwn82r8Ni5bY9sf9cQ/exec";
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec";
         
         // Booking Form Submission
         const bookingForm = document.getElementById('serviceBookingForm');
@@ -1478,30 +1478,7 @@ Thank you for choosing ANS Cooling Center!
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
         }
-        <script>
-function submitBooking() {
-  const data = {
-    name: "Ali",
-    phone: "03269411289",
-    address: "Lahore",
-    service: "AC Repair",
-    problem: "No Cooling",
-    date: "Today"
-  };
-
-  fetch("https://script.google.com/macros/s/AKfycbzgKqVsA03t0U-Ux294FektSsZVfXSlzVItuM-6XeuqlooXp6sjKEhHemssMSA7JKi3/exec", {
-    method: "POST",
-    mode: "no-cors",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(data)
-  })
-  .then(() => alert("Form submitted"))
-  .catch(() => alert("Error"));
-}
-</script>
-
+        
         // ===== ADDITIONAL FUNCTIONS =====
         
         // Smooth scrolling for anchor links
@@ -1573,6 +1550,3 @@ function submitBooking() {
     </script>
 </body>
 </html>
-
-
-
